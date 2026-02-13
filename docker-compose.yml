@@ -1,0 +1,84 @@
+version: '3'
+
+services:
+    work:
+        build:
+            context: './php-apache'
+            #args:
+            #    WWWUSER: '${WWWUSER}'
+            #    WWWGROUP: '${WWWGROUP}'
+        image: work
+        restart: always
+        ports:
+            - '80:80'
+            - '443:443'
+            - '3000:3000' # Nuxt.js等
+            - '5173:5173' # Vue.js
+            #- '8000:8000' # Express等 ※必要に応じてコメントアウトを外す
+        environment:
+            HOST: '0.0.0.0' # ホストOS側からNuxt.js等にアクセスできるように
+        volumes:
+            - './htdocs:/var/www/html'
+            - 'work_homedir_data:/home/work'
+            - './php-apache/php.ini:/usr/local/etc/php/php.ini'
+            - './php-apache/apache2-htdocs.conf:/etc/apache2/sites-enabled/apache2-htdocs.conf'
+        depends_on:
+            - mysql
+            - pgsql
+
+    mysql:
+        image: 'mysql/mysql-server:8.0'
+        restart: always
+        ports:
+            - '3306:3306'
+        environment:
+            MYSQL_ROOT_PASSWORD: 'secret'
+            MYSQL_ROOT_HOST: '%'
+        volumes:
+            - 'mysql_data:/var/lib/mysql'
+
+    pgsql:
+        image: 'postgres:15'
+        restart: always
+        ports:
+            - '5432:5432'
+        environment:
+            POSTGRES_PASSWORD: 'secret'
+        volumes:
+            - 'pgsql_data:/var/lib/postgresql/data'
+
+    phpmyadmin:
+        image: 'phpmyadmin/phpmyadmin'
+        restart: always
+        ports:
+            - '8306:80'
+        environment:
+            PMA_HOST: mysql
+        depends_on:
+            - mysql
+
+    pgadmin4:
+        image: dpage/pgadmin4
+        restart: always
+        ports:
+            - 8432:80
+        volumes:
+            - pgadmin4_data:/var/lib/pgadmin
+        environment:
+            PGADMIN_DEFAULT_EMAIL: 'pgadmin4@pgadmin.org'
+            PGADMIN_DEFAULT_PASSWORD: 'admin'
+        depends_on:
+            - pgsql
+
+    mailpit:
+        image: 'axllent/mailpit:latest'
+        restart: always
+        ports:
+            - '1025:1025'
+            - '8025:8025'
+
+volumes:
+    work_homedir_data:
+    mysql_data:
+    pgsql_data:
+    pgadmin4_data:
